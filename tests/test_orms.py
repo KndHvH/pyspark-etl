@@ -1,63 +1,66 @@
 import pytest
-import pandas as pd
+from unittest.mock import AsyncMock, patch, MagicMock
+from service.orms import APIService, PostgresService
+from models.connection_models import APIConnectionModel, PostgresConnectionModel
 import os
-from service.orms import ExcelService
-from models.connection_models import ExcelConnectionModel
+from dotenv import load_dotenv
 
-@pytest.fixture
-def excel_service():
-    data = {
-        'A': ['valor1', 'valor2', 'valor3'],
-        'B': ['valor1', 'valor2', 'valor3'],
-        'C': ['valor4', 'valor5', 'valor6'],
-        'D': ['valor7', 'valor8', 'valor9'],
-        'E': ['valor10', 'valor11', 'valor12'],
-        'F': ['valor13', 'valor14', 'valor15'],
-        'G': ['valor16', 'valor17', 'valor18']
-    }
-    df = pd.DataFrame(data)
-    
-    temp_excel_path = 'temp_test.xlsx'
-    df.to_excel(temp_excel_path, index=False, header=True)
-    
-    connection_model = ExcelConnectionModel(
-        path=temp_excel_path,
-        header=0,
-        usecols='B:F',
-        dtype=str
+load_dotenv()
+
+@pytest.mark.asyncio
+async def test_read_api():
+    connection_model = APIConnectionModel(url=os.getenv("API_URL"))
+    api_service = APIService(connectionModel=connection_model)
+
+    mock_response = AsyncMock()
+    mock_response.status = 200
+    mock_response.json.return_value = {"key": "value"}
+
+    with patch('aiohttp.ClientSession.get', return_value=mock_response):
+        result = await api_service.read_api()
+        assert result == {"key": "value"}
+        assert connection_model.url == os.getenv("API_URL")
+
+def test_execute_query():
+    connection_model = PostgresConnectionModel(
+        host=os.getenv("SQLS_HOST"), 
+        user=os.getenv("SQLS_USER"), 
+        password=os.getenv("SQLS_PASS"), 
+        database=os.getenv("SQLS_DB")
     )
-    service = ExcelService(connection_model)
+    postgres_service = PostgresService(connectionModel=connection_model)
 
-    yield service
+    mock_connection = MagicMock()
+    mock_connection.execute.return_value.fetchall.return_value = [("result1",), ("result2",)]
 
-    os.remove(temp_excel_path)
+    with patch('sqlalchemy.create_engine') as mock_create_engine:
+        mock_create_engine.return_value.connect.return_value.__enter__.return_value = mock_connection
+        result = postgres_service.execute_query("SELECT * FROM table")
+        assert result == [("result1",), ("result2",)]
+        assert connection_model.host == os.getenv("SQLS_HOST")
+        assert connection_model.user == os.getenv("SQLS_USER")
+        assert connection_model.password == os.getenv("SQLS_PASS")
+        assert connection_model.database == os.getenv("SQLS_DB")
 
+def test_read_sql():
+    connection_model = PostgresConnectionModel(
+        host=os.getenv("SQLS_HOST"), 
+        user=os.getenv("SQLS_USER"), 
+        password=os.getenv("SQLS_PASS"), 
+        database=os.getenv("SQLS_DB")
+    )
+    postgres_service = PostgresService(connectionModel=connection_model)
 
-def test_read_excel(excel_service):
-    df = excel_service.read_excel()
-    assert isinstance(df, pd.DataFrame)
-    assert not df.empty
-    
-def test_read_excel_and_self_validate(excel_service):
-    df = excel_service.read_excel()
-    excel_service._validate_content(df)
+    mock_connection = MagicMock()
+    mock_df = MagicMock()
 
-def test_validate_content_empty(excel_service):
-    df = pd.DataFrame()
-    with pytest.raises(ValueError):
-        excel_service._validate_content(df)
-
-def test_validate_content_missing_data(excel_service):
-    df = pd.DataFrame({'A': [None, None]})
-    with pytest.raises(ValueError):
-        excel_service._validate_content(df)
-
-def test_validate_content_unnamed(excel_service):
-    df = pd.DataFrame({'Unnamed: 0': [1, 2]})
-    with pytest.raises(ValueError):
-        excel_service._validate_content(df)
-
-def test_validate_content_similarity(excel_service):
-    df = pd.DataFrame({'Column': ['Column']})
-    with pytest.raises(ValueError):
-        excel_service._validate_content(df)
+    with patch('sqlalchemy.create_engine') as mock_create_engine, \
+         patch('pandas.read_sql', return_value=mock_df) as mock_read_sql:
+        mock_create_engine.return_value.connect.return_value.__enter__.return_value = mock_connection
+        result = postgres_service.read_sql("SELECT * FROM table")
+        mock_read_sql.assert_called_once_with("SELECT * FROM table", mock_connection)
+        assert result == mock_df
+        assert connection_model.host == os.getenv("SQLS_HOST")
+        assert connection_model.user == os.getenv("SQLS_USER")
+        assert connection_model.password == os.getenv("SQLS_PASS")
+        assert connection_model.database == os.getenv("SQLS_DB")

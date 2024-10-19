@@ -16,14 +16,6 @@ logging.basicConfig(
 
 def main():
     
-    excel_service_dex = ExcelService(
-        connectionModel=ExcelConnectionModel(
-            path=os.getenv("EXCEL_PATH"),
-            header=2,
-            usecols="B:F",
-            dtype=str
-        )
-    )
     
     api_service = APIService(
         connectionModel=APIConnectionModel(
@@ -31,22 +23,13 @@ def main():
         )
     )
     
-    sap_hana_service = SapHanaService(
-        connectionModel=SapHanaConnectionModel(
-            host=os.getenv("SAP_HOST"),
-            user=os.getenv("SAP_USER"),
-            password=os.getenv("SAP_PASS"),
-            port=os.getenv("SAP_PORT")
-        )
-    )
-
-    sql_server_service = SqlServerService(
-        connectionModel=SQLServerConnectionModel(
-            host=os.getenv("SQLS_HOST"),
-            user=os.getenv("SQLS_USER"),
-            password=os.getenv("SQLS_PASS"),
-            driver=os.getenv("SQLS_DRIVER"),
-            database=os.getenv("SQLS_DB")
+    
+    postgres_service = PostgresService(
+        connectionModel=PostgresConnectionModel(
+            host=os.getenv("POSTGRES_HOST"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASS"),
+            database=os.getenv("POSTGRES_DB")
         )
     )
     

@@ -1,24 +1,19 @@
 import pytest
-from models.connection_models import SapHanaConnectionModel, SQLServerConnectionModel, ExcelConnectionModel
+from models.connection_models import PostgresConnectionModel, APIConnectionModel
 
-def test_sap_hana_connection_model():
-    model = SapHanaConnectionModel('host', 'user', 'pass', 30015)
-    assert model.host == 'host'
-    assert model.user == 'user'
-    assert model.password == 'pass'
-    assert model.port == 30015
+@pytest.mark.parametrize("host, user, password, database", [
+    ('host', 'user', 'pass', 'database')
+])
+def test_postgres_connection_model(host, user, password, database):
+    model = PostgresConnectionModel(host, user, password, database)
+    assert model.host == host
+    assert model.user == user
+    assert model.password == password
+    assert model.database == database
 
-def test_sql_server_connection_model():
-    model = SQLServerConnectionModel('host', 'user', 'pass', 'driver', 'database')
-    assert model.host == 'host'
-    assert model.user == 'user'
-    assert model.password == 'pass'
-    assert model.driver == 'driver'
-    assert model.database == 'database'
-
-def test_excel_connection_model():
-    model = ExcelConnectionModel('path', 2, 'B:F', str)
-    assert model.path == 'path'
-    assert model.header == 2
-    assert model.usecols == 'B:F'
-    assert model.dtype == str
+@pytest.mark.parametrize("url", [
+    ('http://example.com')
+])
+def test_api_connection_model(url):
+    model = APIConnectionModel(url)
+    assert model.url == url
