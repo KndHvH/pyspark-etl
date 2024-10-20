@@ -1,27 +1,24 @@
-import time 
-import aiohttp
+import time
+import requests
 import pandas as pd
 from datetime import datetime, timedelta
 from models.connection_models import APIConnectionModel, PostgresConnectionModel
 from sqlalchemy import create_engine
 
 class APIService():
-    def __init__(self, connectionModel:APIConnectionModel):
+    def __init__(self, connectionModel: APIConnectionModel):
         self._connectionModel = connectionModel
     
-    async def read_api(self) -> pd.DataFrame:
-        async with aiohttp.ClientSession() as session:
-            payload = await self._fetch_data(
-                session=session, url=self._connectionModel.url
-            )
-
-        return payload        
+    def read_api(self) -> pd.DataFrame:
+        payload = self._fetch_data(url=self._connectionModel.url)
+        df = pd.DataFrame(payload)
+        return df          
     
-    async def _fetch_data(self, session, url):
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise Exception(f"Erro na requisição: {response.status}")
-            return await response.json()
+    def _fetch_data(self, url):
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise Exception(f"Erro na requisição: {response.status_code}")
+        return response.json()
 
 class PostgresService():
     def __init__(self, connectionModel:PostgresConnectionModel):

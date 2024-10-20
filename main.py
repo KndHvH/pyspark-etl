@@ -26,14 +26,14 @@ def main():
     
     postgres_service = PostgresService(
         connectionModel=PostgresConnectionModel(
-            host=os.getenv("POSTGRES_HOST"),
-            user=os.getenv("POSTGRES_USER"),
-            password=os.getenv("POSTGRES_PASS"),
-            database=os.getenv("POSTGRES_DB")
+            host=os.getenv("PG_HOST"),
+            user=os.getenv("PG_USER"),
+            password=os.getenv("PG_PASS"),
+            database=os.getenv("PG_DB")
         )
     )
     
-    etlflow = EtlFlow(services={'source': sap_hana_service, 'target': sql_server_service})
+    etlflow = EtlFlow(services={'source': api_service, 'target': postgres_service})
     etlflow.run()
 
 if __name__ == '__main__':
