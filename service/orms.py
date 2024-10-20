@@ -11,8 +11,7 @@ class APIService():
     
     def read_api(self) -> pd.DataFrame:
         payload = self._fetch_data(url=self._connectionModel.url)
-        df = pd.DataFrame(payload)
-        return df          
+        return payload          
     
     def _fetch_data(self, url):
         response = requests.get(url)
